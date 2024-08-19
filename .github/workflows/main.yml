@@ -21,15 +21,23 @@ jobs:
           restore-keys: |
             Library-
 
-      # # Test
-      # - name: Run tests
-      #   uses: game-ci/unity-test-runner@v4
-      #   env:
-      #     UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-      #     UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-      #     UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-      #   with:
-      #     githubToken: ${{ secrets.GITHUB_TOKEN }}
+      # Set targetPlatform based on branch name
+      - name: Set targetPlatform
+        id: set-target
+        run: |
+          declare -A branch_to_platform=(
+            ["android"]="Android"
+            ["ios"]="iOS"
+            ["webgl"]="WebGL"
+            ["main"]="StandaloneLinux64"
+          )
+          branch_name=$(echo ${{ github.ref_name }} | tr '[:upper:]' '[:lower:]')
+          platform=${branch_to_platform[$branch_name]}
+          if [ -z "$platform" ]; then
+            echo "Branch name does not match any known targetPlatform."
+            exit 1
+          fi
+          echo "targetPlatform=$platform" >> $GITHUB_ENV
 
       # Build
       - name: Build project
@@ -39,7 +47,7 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          targetPlatform: WebGL
+          targetPlatform: ${{ env.targetPlatform }}
 
       # Output
       - uses: actions/upload-artifact@v3
